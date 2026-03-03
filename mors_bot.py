@@ -17,8 +17,8 @@ groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # --- CONFIG ---
 MORS_CHANNEL_NAME = "mors-chamber"  # Dedicated channel name (create this in your server)
-MIN_INTERJECTION_MINUTES = 60       # Minimum minutes between random messages
-MAX_INTERJECTION_MINUTES = 180      # Maximum minutes between random messages
+MIN_INTERJECTION_MINUTES = 1440       # Minimum minutes between random messages (1 day)
+MAX_INTERJECTION_MINUTES = 2880      # Maximum minutes between random messages (2 days)
 
 # --- CONVERSATION MEMORY ---
 channel_history = {}
@@ -117,8 +117,8 @@ async def random_interjections():
 
     while not client.is_closed():
         wait_time = random.randint(
-            MIN_INTERJECTION_MINUTES * 1440,
-            MAX_INTERJECTION_MINUTES * 1440
+            MIN_INTERJECTION_MINUTES * 60,
+            MAX_INTERJECTION_MINUTES * 60
         )
         await asyncio.sleep(wait_time)
 
