@@ -117,8 +117,8 @@ async def random_interjections():
 
     while not client.is_closed():
         wait_time = random.randint(
-            MIN_INTERJECTION_MINUTES * 60,
-            MAX_INTERJECTION_MINUTES * 60
+            MIN_INTERJECTION_MINUTES * 1440,
+            MAX_INTERJECTION_MINUTES * 1440
         )
         await asyncio.sleep(wait_time)
 
