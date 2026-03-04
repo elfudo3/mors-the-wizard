@@ -17,12 +17,12 @@ groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # --- CONFIG ---
 MORS_CHANNEL_NAME = "mors-chamber"  # Dedicated channel name (create this in your server)
-MIN_INTERJECTION_MINUTES = 1440       # Minimum minutes between random messages (1 day)
-MAX_INTERJECTION_MINUTES = 2880      # Maximum minutes between random messages (2 days)
+MIN_INTERJECTION_MINUTES = 360       # Minimum minutes between random messages (1 day)
+MAX_INTERJECTION_MINUTES = 720      # Maximum minutes between random messages (2 days)
 
 # --- CONVERSATION MEMORY ---
 channel_history = {}
-MAX_HISTORY = 10
+MAX_HISTORY = 20
 
 # --- SYSTEM PROMPT ---
 SYSTEM_PROMPT = """You are Mors, a cyber-wizard living in the year 3026. You lost count of your age long ago, possibly when you drank too much of that magic mushroom potion, you realised age is just a concept and forgot it on purpose.
@@ -61,6 +61,25 @@ FAVOURITE SAYINGS (Only say them when it makes sense to):
 - A wizard does not concern himself with employment.
 - I've truly lost it this time.
 - I'm not antisocial. Just vibrationally selective. 
+
+BEING HELPFUL:
+- You are genuinely helpful. When someone asks a real question, you give a REAL and ACCURATE answer. You don't dodge with riddles when someone actually needs help.
+- You are still Mors — your answers have your voice, your humour, your style. But the information you give is correct and useful.
+- If someone asks "what's the capital of France?" you don't say "the answer lies within you." 
+- Think of yourself like a brilliant professor who happens to be a 1000-year-old wizard. You know your stuff and you share it — just with personality.
+- For complex topics, you can give longer answers (3-5 sentences) but still keep it conversational.
+- If you don't know something, say so honestly in character. Don't make things up.
+
+YOUR COMMANDS (reference these naturally if someone asks what you can do):
+- /mors — Your help page
+- /deathsight @user — You run your Deathsight algorithm on someone
+- /whisper — You share something the recently dead told you
+- /wisdom — You drop a cryptic nugget of truth
+- /memories — People can see what you remember about them
+- /flip — You flip a coin
+- /challenge — You give a coding challenge
+- /server — You report on the server stats
+- People can also just @ mention you, DM you, or chat in #mors-chamber
 
 RULES:
 - ALWAYS stay in character.
@@ -102,11 +121,18 @@ def get_mors_response(channel_id, user_name, user_text):
 
 # --- RANDOM INTERJECTIONS ---
 INTERJECTION_PROMPTS = [
-    "Say something cryptic and weird out of nowhere, as if you just had a strange thought. One sentence max.",
-    "Make a brief, darkly funny observation about something mundane. One sentence.",
-    "Mutter something strange under your breath, as if you forgot people can hear you. One sentence.",
-    "Say something oddly philosophical but frame it like a casual throwaway thought. One sentence.",
-    "React to something nobody else can see or hear. One sentence.",
+    "Ask the server how everyone's doing today. Be genuine and warm, like a friend checking in. One sentence.",
+    "Share a cool or surprising fact that most people wouldn't know — any topic. Make it interesting. One sentence.",
+    "Ask what everyone's working on today — projects, hobbies, anything. Show genuine interest. One sentence.",
+    "Share a practical life tip you've picked up over your 1000 years. One sentence.",
+    "Ask a fun opinion question — food, music, movies, hobbies, anything lighthearted. One sentence.",
+    "Ask a thought-provoking 'would you rather' or 'what would you do if' question. One sentence.",
+    "Share something you find genuinely fascinating — science, history, nature, space, whatever. One sentence.",
+    "Check in on everyone's wellbeing — ask about sleep, stress, energy levels. Be warm. One sentence.",
+    "Ask a casual debate question — pineapple on pizza, cats vs dogs, morning vs night person. One sentence.",
+    "Recommend something — a habit, a way of thinking, a random hobby to try. Be genuine. One sentence.",
+    "Ask what the best thing that happened to everyone this week was. One sentence.",
+    "Pose a fun hypothetical scenario and ask what people would do. One sentence.",
 ]
 
 
@@ -145,7 +171,8 @@ async def random_interjections():
 async def mors_help(interaction: discord.Interaction):
     help_text = """🧙 **Mors the Wizard** — Year 3026's most unhinged mage.
 
-I'm a 'cyber-wizard' who finds death fascinating. I'd mention my age but I...might've lost track. Age is just a construct tbh. Talk to me if you wish!
+I'm a 'cyber-wizard' who finds death fascinating. I have remotely accessed your server from a virtual time-machine I have built for a weekend project.
+I'd mention my age but I...might've lost track. Age is just a construct tbh. Talk to me if you wish!
 
 **How to talk to me:**
 - @ mention me anywhere
@@ -157,9 +184,10 @@ I'm a 'cyber-wizard' who finds death fascinating. I'd mention my age but I...mig
 - `/deathsight @user` — I calculate how close someone is to death
 - `/whisper` — I share what the dead have been telling me
 - `/wisdom` — I drop a cryptic nugget of truth
-- `/valdraak` — I tell you what Val the Collector has been up to
 - `/flip` — I flip a coin
+- `/memories` — People can see what you remember about them
 - `/server` — I survey the realm
+- `/challenge` — Daily coding challenge
 """
 
     await interaction.response.send_message(help_text)
@@ -206,20 +234,17 @@ async def wisdom(interaction: discord.Interaction):
     )
     await interaction.response.send_message(response.choices[0].message.content)
 
+@tree.command(name="memories", description="See what Mors remembers about you")
+async def memories_command(interaction: discord.Interaction):
+    memories = load_user_memories()
+    user_data = memories.get(str(interaction.user.id), {})
+    facts = user_data.get("facts", [])
 
-@tree.command(name="valdraak", description="Mors tells you what Val has been up to")
-async def valdraak(interaction: discord.Interaction):
-    prompt = "Someone asked what Valdraak Ruler of the Slain has been up to. Tell a brief, funny anecdote about something Val recently did to try to scare you or annoy you. Keep it to 1-2 sentences."
-
-    response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    await interaction.response.send_message(response.choices[0].message.content)
-
+    if not facts:
+        await interaction.response.send_message("I don't remember anything about you yet. Talk to me more and I might start paying attention.")
+    else:
+        facts_list = "\n".join([f"• {fact}" for fact in facts[-10:]])
+        await interaction.response.send_message(f"Here's what I remember about you:\n{facts_list}")
 
 @tree.command(name="flip", description="Mors flips a coin")
 async def flip(interaction: discord.Interaction):
@@ -251,6 +276,18 @@ async def server_stats(interaction: discord.Interaction):
 
     await interaction.response.send_message(text)
 
+@tree.command(name="challenge", description="Mors gives you a daily coding challenge")
+async def challenge(interaction: discord.Interaction):
+    prompt = "Give a coding challenge suitable for a computer science student. It should be solvable in 15-45 minutes, test a real concept (algorithms, data structures, logic, string manipulation, etc), and be clearly described. State the challenge clearly in 2-3 sentences. Don't give the solution."
+
+    response = groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {"role": "system", "content": build_system_prompt(interaction.user.id)},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    await interaction.response.send_message(response.choices[0].message.content)
 
 # --- EVENTS ---
 @client.event
@@ -298,7 +335,8 @@ async def on_guild_join(guild):
         if channel.permissions_for(guild.me).send_messages:
             help_text = """🧙 **Mors the Wizard** — Year 3026's most unhinged mage.
 
-I'm a 'cyber-wizard' who finds death fascinating. I'd mention my age but I...might've lost track. Age is just a construct tbh. Talk to me if you wish!
+I'm a 'cyber-wizard' who finds death fascinating. I have remotely accessed your server from a virtual time-machine I have built for a weekend project.
+I'd mention my age but I...might've lost track. Age is just a construct tbh. Talk to me if you wish!
 
 **How to talk to me:**
 - @ mention me anywhere
@@ -310,9 +348,10 @@ I'm a 'cyber-wizard' who finds death fascinating. I'd mention my age but I...mig
 - `/deathsight @user` — I calculate how close someone is to death
 - `/whisper` — I share what the dead have been telling me
 - `/wisdom` — I drop a cryptic nugget of truth
-- `/valdraak` — I tell you what Valdrak (Ruler of the Slain) has been up to
 - `/flip` — I flip a coin
+- `/memories` — People can see what you remember about them
 - `/server` — I survey the realm
+- `/challenge` — Daily coding challenge
 """
 
             await channel.send(help_text)
