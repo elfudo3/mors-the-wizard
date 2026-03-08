@@ -101,7 +101,7 @@ def get_mors_response(channel_id, user_name, user_text):
     messages += channel_history[channel_id]
 
     response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="meta-llama/llama-4-maverick-17b-128e-instruct",
         messages=messages
     )
 
@@ -120,19 +120,22 @@ def get_mors_response(channel_id, user_name, user_text):
 
 
 # --- RANDOM INTERJECTIONS ---
+recent_interjections = []
+MAX_RECENT_INTERJECTIONS = 20
+
 INTERJECTION_PROMPTS = [
-    "Ask the server how everyone's doing today. Be genuine and warm, like a friend checking in. One sentence.",
-    "Share a cool or surprising fact that most people wouldn't know — any topic. Make it interesting. One sentence.",
-    "Ask what everyone's working on today — projects, hobbies, anything. Show genuine interest. One sentence.",
-    "Share a practical life tip you've picked up over your 1000 years. One sentence.",
-    "Ask a fun opinion question — food, music, movies, hobbies, anything lighthearted. One sentence.",
-    "Ask a thought-provoking 'would you rather' or 'what would you do if' question. One sentence.",
-    "Share something you find genuinely fascinating — science, history, nature, space, whatever. One sentence.",
-    "Check in on everyone's wellbeing — ask about sleep, stress, energy levels. Be warm. One sentence.",
-    "Ask a casual debate question — pineapple on pizza, cats vs dogs, morning vs night person. One sentence.",
-    "Recommend something — a habit, a way of thinking, a random hobby to try. Be genuine. One sentence.",
-    "Ask what the best thing that happened to everyone this week was. One sentence.",
-    "Pose a fun hypothetical scenario and ask what people would do. One sentence.",
+    "Share a fascinating fact about computer science — algorithms, computing history, AI, cryptography, anything. Make it specific and surprising. One sentence.",
+    "Share a mind-blowing physics fact — quantum mechanics, relativity, thermodynamics, anything. One sentence.",
+    "Share something wild about astrophysics or space — black holes, stars, galaxies, the universe. One sentence.",
+    "Share a surprising mathematical fact or paradox that would make people think. One sentence.",
+    "Ask a thought-provoking science question that would spark discussion — physics, CS, maths, astronomy. One sentence.",
+    "Share a fascinating fact about how computers actually work at the hardware level. One sentence.",
+    "Share something interesting about the history of mathematics or a famous mathematician. One sentence.",
+    "Share a counterintuitive fact from theoretical physics that sounds wrong but is true. One sentence.",
+    "Pose a fun science 'what if' scenario — what if gravity doubled, what if light was slower, etc. One sentence.",
+    "Share a connection between two seemingly unrelated scientific fields that most people wouldn't know. One sentence.",
+    "Share something fascinating about networks, the internet, or how data travels. One sentence.",
+    "Share a cool fact about entropy, chaos theory, or complexity. One sentence.",
 ]
 
 
@@ -152,14 +155,28 @@ async def random_interjections():
                 if channel.name == MORS_CHANNEL_NAME:
                     try:
                         prompt = random.choice(INTERJECTION_PROMPTS)
+
+                        # Build context of recent messages to avoid repeats
+                        recent_context = ""
+                        if recent_interjections:
+                            recent_context = "\n\nYou have ALREADY said these things recently. Do NOT repeat any of them or say anything similar:\n"
+                            for msg in recent_interjections:
+                                recent_context += f"- {msg}\n"
+
                         response = groq_client.chat.completions.create(
-                            model="llama-3.3-70b-versatile",
+                            model="meta-llama/llama-4-maverick-17b-128e-instruct",
                             messages=[
-                                {"role": "system", "content": SYSTEM_PROMPT},
+                                {"role": "system", "content": SYSTEM_PROMPT + recent_context},
                                 {"role": "user", "content": prompt}
                             ]
                         )
                         reply = response.choices[0].message.content
+
+                        # Track this interjection
+                        recent_interjections.append(reply)
+                        if len(recent_interjections) > MAX_RECENT_INTERJECTIONS:
+                            recent_interjections.pop(0)
+
                         await channel.send(reply)
                     except Exception as e:
                         print(f"Interjection error: {e}")
@@ -185,9 +202,7 @@ I'd mention my age but I...might've lost track. Age is just a construct tbh. Tal
 - `/whisper` — I share what the dead have been telling me
 - `/wisdom` — I drop a cryptic nugget of truth
 - `/flip` — I flip a coin
-- `/memories` — People can see what you remember about them
 - `/server` — I survey the realm
-- `/challenge` — Daily coding challenge
 """
 
     await interaction.response.send_message(help_text)
@@ -198,7 +213,7 @@ async def deathsight(interaction: discord.Interaction, target: discord.Member):
     prompt = f"Someone wants you to use your Deathsight algorithm on a person named {target.display_name}. Give a short, funny, cryptic reading about their proximity to death. Be creative and darkly humorous. Keep it to 1-2 sentences. This is just for fun — don't be actually morbid."
 
     response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="meta-llama/llama-4-maverick-17b-128e-instruct",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
@@ -212,7 +227,7 @@ async def whisper(interaction: discord.Interaction):
     prompt = "Share something a recently dead spirit whispered to you. Make it funny, strange, or oddly mundane. Maybe they're complaining about something trivial, or sharing a weird corporate secret. Keep it to 1-2 sentences."
 
     response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="meta-llama/llama-4-maverick-17b-128e-instruct",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
@@ -226,25 +241,13 @@ async def wisdom(interaction: discord.Interaction):
     prompt = "Someone has asked you for wisdom. Give them something cryptic, short, and thought-provoking. It should sound like a riddle or a strange proverb. One sentence."
 
     response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="meta-llama/llama-4-maverick-17b-128e-instruct",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
         ]
     )
     await interaction.response.send_message(response.choices[0].message.content)
-
-@tree.command(name="memories", description="See what Mors remembers about you")
-async def memories_command(interaction: discord.Interaction):
-    memories = load_user_memories()
-    user_data = memories.get(str(interaction.user.id), {})
-    facts = user_data.get("facts", [])
-
-    if not facts:
-        await interaction.response.send_message("I don't remember anything about you yet. Talk to me more and I might start paying attention.")
-    else:
-        facts_list = "\n".join([f"• {fact}" for fact in facts[-10:]])
-        await interaction.response.send_message(f"Here's what I remember about you:\n{facts_list}")
 
 @tree.command(name="flip", description="Mors flips a coin")
 async def flip(interaction: discord.Interaction):
@@ -275,19 +278,6 @@ async def server_stats(interaction: discord.Interaction):
 - Created: **{guild.created_at.strftime('%B %d, %Y')}**"""
 
     await interaction.response.send_message(text)
-
-@tree.command(name="challenge", description="Mors gives you a daily coding challenge")
-async def challenge(interaction: discord.Interaction):
-    prompt = "Give a coding challenge suitable for a computer science student. It should be solvable in 15-45 minutes, test a real concept (algorithms, data structures, logic, string manipulation, etc), and be clearly described. State the challenge clearly in 2-3 sentences. Don't give the solution."
-
-    response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": build_system_prompt(interaction.user.id)},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    await interaction.response.send_message(response.choices[0].message.content)
 
 # --- EVENTS ---
 @client.event
@@ -349,9 +339,7 @@ I'd mention my age but I...might've lost track. Age is just a construct tbh. Tal
 - `/whisper` — I share what the dead have been telling me
 - `/wisdom` — I drop a cryptic nugget of truth
 - `/flip` — I flip a coin
-- `/memories` — People can see what you remember about them
 - `/server` — I survey the realm
-- `/challenge` — Daily coding challenge
 """
 
             await channel.send(help_text)
