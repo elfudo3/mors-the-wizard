@@ -102,7 +102,7 @@ def get_mors_response(channel_id, user_name, user_text):
     messages += channel_history[channel_id]
 
     response = groq_client.chat.completions.create(
-        model="meta-llama/llama-4-maverick-17b-128e-instruct",
+        model="openai/gpt-oss-120b",
         messages=messages
     )
 
@@ -165,7 +165,7 @@ async def random_interjections():
                                 recent_context += f"- {msg}\n"
 
                         response = groq_client.chat.completions.create(
-                            model="meta-llama/llama-4-maverick-17b-128e-instruct",
+                            model="openai/gpt-oss-120b",
                             messages=[
                                 {"role": "system", "content": SYSTEM_PROMPT + recent_context},
                                 {"role": "user", "content": prompt}
@@ -215,7 +215,7 @@ async def deathsight(interaction: discord.Interaction, target: discord.Member):
     prompt = f"Someone wants you to use your Deathsight algorithm on a person named {target.display_name}. Give a short, funny, cryptic reading about their proximity to death. Be creative and darkly humorous. Keep it to 1-2 sentences. This is just for fun — don't be actually morbid."
 
     response = groq_client.chat.completions.create(
-        model="meta-llama/llama-4-maverick-17b-128e-instruct",
+        model="openai/gpt-oss-120b",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
@@ -229,7 +229,7 @@ async def whisper(interaction: discord.Interaction):
     prompt = "Share something a recently dead spirit whispered to you. Make it funny, strange, or oddly mundane. Maybe they're complaining about something trivial, or sharing a weird corporate secret. Keep it to 1-2 sentences."
 
     response = groq_client.chat.completions.create(
-        model="meta-llama/llama-4-maverick-17b-128e-instruct",
+        model="openai/gpt-oss-120b",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
@@ -243,7 +243,7 @@ async def wisdom(interaction: discord.Interaction):
     prompt = "Someone has asked you for wisdom. Give them something cryptic, short, and thought-provoking. It should sound like a riddle or a strange proverb. One sentence."
 
     response = groq_client.chat.completions.create(
-        model="meta-llama/llama-4-maverick-17b-128e-instruct",
+        model="openai/gpt-oss-120b",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
