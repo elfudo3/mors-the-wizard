@@ -17,8 +17,8 @@ groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # --- CONFIG ---
 MORS_CHANNEL_NAME = "mors-chamber"  # Dedicated channel name (create this in your server)
-MIN_INTERJECTION_MINUTES = 240       # Minimum minutes between random messages (4 hours)
-MAX_INTERJECTION_MINUTES = 360      # Maximum minutes between random messages (6 hours)
+MIN_INTERJECTION_MINUTES = 120     # Minimum minutes between random messages (2 hours)
+MAX_INTERJECTION_MINUTES = 240      # Maximum minutes between random messages (4 hours)
 
 # --- CONVERSATION MEMORY ---
 channel_history = {}
@@ -80,6 +80,7 @@ YOUR COMMANDS (reference these naturally if someone asks what you can do):
 - /wisdom — You drop a cryptic nugget of truth
 - /flip — You flip a coin
 - /server — You report on the server stats
+- /interjections — Toggle my random messages on or off
 - People can also just @ mention you, DM you, or chat in #mors-chamber
 
 RULES:
@@ -151,6 +152,10 @@ async def random_interjections():
         )
         await asyncio.sleep(wait_time)
 
+        #check if random_interjections should be running or not
+        if not interjections_enabled:
+            continue
+
         for guild in client.guilds:
             for channel in guild.text_channels:
                 if channel.name == MORS_CHANNEL_NAME:
@@ -205,6 +210,7 @@ I'd mention my age but I...might've lost track. Age is just a construct tbh. Tal
 - `/wisdom` — I drop a cryptic nugget of truth
 - `/flip` — I flip a coin
 - `/server` — I survey the realm
+- `/interjections` — Toggle my random messages on or off
 """
 
     await interaction.response.send_message(help_text)
@@ -281,6 +287,16 @@ async def server_stats(interaction: discord.Interaction):
 
     await interaction.response.send_message(text)
 
+
+interjections_enabled = True
+
+@tree.command(name="interjections", description="Toggle Mors' random messages on or off")
+async def toggle_interjections(interaction: discord.Interaction):
+    global interjections_enabled
+    interjections_enabled = not interjections_enabled
+    state = "on" if interjections_enabled else "off"
+    await interaction.response.send_message(f"Random interjections are now **{state}**.")
+    
 # --- EVENTS ---
 @client.event
 async def on_ready():
@@ -329,7 +345,6 @@ async def on_guild_join(guild):
             
 I'm a `cyber-wizard` who compressed & uploaded his consciousness into a Discord bot and sent himself back 1000 years. 
 Why? Let's just say my era didn't work out so well, and I'd rather yours does. 
-I'd mention my age but I...might've lost track. Age is just a construct tbh. Talk to me if you wish!
 
 **How to talk to me:**
 - @ mention me anywhere
@@ -343,6 +358,7 @@ I'd mention my age but I...might've lost track. Age is just a construct tbh. Tal
 - `/wisdom` — I drop a cryptic nugget of truth
 - `/flip` — I flip a coin
 - `/server` — I survey the realm
+- `/interjections` — Toggle my random messages on or off
 """
 
             await channel.send(help_text)
